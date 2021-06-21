@@ -19,6 +19,11 @@ namespace Projects
         {
             InitializeComponent();
         }
+        public void LoadCountries() 
+        {
+            var list = new CountryService().Select();
+            lookUpEdit2.Properties.DataSource = list;
+        }
         public AddProject(Project project)
         {
             InitializeComponent();
@@ -29,10 +34,9 @@ namespace Projects
             {
                 var id_list = (from p in connection.Projects where p.Id == project.Id select p.CountryId);
                 int id = id_list.Single();
-                comboBox1.Text = id + "|" + project.Country.Name;
-                comboBox1.Items.Add("Добавить");
-                comboBox1.Items.Add(comboBox1.Text);
-                comboBox1.SelectedIndex = 1;
+                var item = connection.Countries.Find(id);
+                lookUpEdit2.Properties.DisplayMember = item.Name;
+                lookUpEdit2.Properties.ValueMember = item.Id.ToString();
             }
             Edit = true;
         }
@@ -41,19 +45,18 @@ namespace Projects
         public event Action<object, EventArgs> Success;
         private void button1_Click(object sender, EventArgs e)
         {
-            if(textBox1.Text.Length == 0 || dateTimePicker1.Value.Date > DateTime.Now.Date || comboBox1.SelectedItem == null)
+            if (textBox1.Text.Length == 0 || dateTimePicker1.Value.Date > DateTime.Now.Date || lookUpEdit2.EditValue == null)
             {
                 MessageBox.Show("Укажите данные правильно.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             //Если все нормально
-            int countryId = int.Parse(comboBox1.SelectedItem.ToString().Split('|')[0]);//Из строки со странами вытаскиваем айди
+            var country = new Country();
             if (!Edit)//Если добавляем новую запись
             {
-                project = new Project(textBox1.Text, dateTimePicker1.Value.Date.ToString().Split(' ')[0], countryId);
+                project = new Project(textBox1.Text, dateTimePicker1.Value.Date.ToString().Split(' ')[0], (int)lookUpEdit2.EditValue);
                 if (new ProjectService().Insert(project))
                 {
-                    comboBox1.Text = null;
                     textBox1.Text = null;
                     dateTimePicker1.Value = DateTime.Now.Date;
                     Success?.Invoke(this, new EventArgs());
@@ -63,35 +66,24 @@ namespace Projects
             {
                 project.Name = textBox1.Text;
                 project.DateCreate = dateTimePicker1.Value.Date.ToString().Split(' ')[0];
-                project.CountryId = countryId;
+                project.CountryId = (int)lookUpEdit2.EditValue;
                 new ProjectService().Update(project);
                 Success?.Invoke(this, new EventArgs());
             }
 
         }
-        private void comboBox1_MouseClick(object sender, MouseEventArgs e)
+
+        private void button2_Click(object sender, EventArgs e)
         {
-            comboBox1.Items.Clear();
-            comboBox1.Items.Add("Добавить");
-            //Добавление стран в комбо бокс
-            using (var connection = new SqlDataContext())
-            {
-                foreach (Country item in connection.Countries)
-                {
-                    comboBox1.Items.Add(item.Id + "|" + item.Name);
-                }
-            }
+            new AddCountry().ShowDialog(this);
+            LoadCountries();
         }
 
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        private void AddProject_Load(object sender, EventArgs e)
         {
-            if (comboBox1.SelectedIndex == 0)
-            {
-                //добавление новой страны
-                var addCountry = new AddCountry();
-                addCountry.ShowDialog(this);
-                comboBox1.Items.Clear(); // но это удалит все элементы..
-            }
+            LoadCountries();
+            lookUpEdit2.Properties.DisplayMember = "Название";
+            lookUpEdit2.Properties.ValueMember = "Id";
         }
     }
 }

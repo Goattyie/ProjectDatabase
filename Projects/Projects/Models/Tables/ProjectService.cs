@@ -74,7 +74,6 @@ namespace Projects.Models.Tables
                     item.CountryId = obj.CountryId;
                     item.Name = obj.Name;
                     item.DateCreate = obj.DateCreate;
-                    connection.Entry(item).State = EntityState.Modified;
                     connection.SaveChanges();
                 }
                 catch (Exception ex)
